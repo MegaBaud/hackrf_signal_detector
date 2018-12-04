@@ -21,7 +21,7 @@ def read_data(file_loc, data_db, deque_length=NUM_STORED_DATA_POINTS):
     """
     with open(file_loc, 'r') as f:
         for line in f:
-            x = line.split()
+            x = line.split(',')
             
             low_hz = x[2]
             current_hz = data_db.get(low_hz)
@@ -32,7 +32,7 @@ def read_data(file_loc, data_db, deque_length=NUM_STORED_DATA_POINTS):
 
             # stick the newest entries in the DB.  Deque will overwrite the oldest data
             for i in x[6:]:
-                data_db[low_hz].append(i)
+                data_db[low_hz].append(float(i))
 
 
 def update_averages(avg_db, data_db, deque_length=NUM_STORED_AVERAGES):
@@ -43,8 +43,8 @@ def update_averages(avg_db, data_db, deque_length=NUM_STORED_AVERAGES):
       low_hz1:...
     }
     """
-    if num_samples_to_avg > deque_length:
-        print('ERROR:  Cannot average more than stored amount.')
+    # if num_samples_to_avg > deque_length:
+    #     print('ERROR:  Cannot average more than stored amount.')
 
     for freq in data_db:
         current_hz = avg_db.get(freq)
