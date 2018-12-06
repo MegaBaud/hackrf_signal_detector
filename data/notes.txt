@@ -1,0 +1,1 @@
+stopped seeing stuff at -10dB around 30Mhz.  Probably do 50Mhz as lower bound
