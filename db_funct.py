@@ -1,11 +1,11 @@
-# Use hackrf_sweep to keep track of average dB
+# Parse the output of hackrf_sweep to keep track of average dB
 
 import collections
 
 NUM_STORED_DATA_POINTS = 50
 NUM_STORED_AVERAGES = 50
 
-def read_data(file_loc, data_db, deque_length=NUM_STORED_DATA_POINTS):
+def read_data(file_loc, data_db, metadata_db, update=True, data_deque_length=NUM_STORED_DATA_POINTS, metadata_deque_length=NUM_STORED_AVERAGES):
     """Injest hackrf_sweep data.  Example data:
 
       date, time, hz_low, hz_high, hz_bin_width, num_samples, dB readings in time
@@ -23,39 +23,25 @@ def read_data(file_loc, data_db, deque_length=NUM_STORED_DATA_POINTS):
         for line in f:
             x = line.split(',')
             
-            low_hz = x[2]
+            low_hz = int(x[2])
             current_hz = data_db.get(low_hz)
             
             # does the DB entry exist?
             if not current_hz:
-                data_db[low_hz] = collections.deque(maxlen=deque_length)
+                data_db[low_hz] = collections.deque(maxlen=data_deque_length)
 
             # stick the newest entries in the DB.  Deque will overwrite the oldest data
             for i in x[6:]:
                 data_db[low_hz].append(float(i))
 
-
-def update_averages(avg_db, data_db, deque_length=NUM_STORED_AVERAGES):
-    """Update the averages in avg_db based on updates to data_db.
-
-    avg_db format:
-    { low_hz0: deque([avg0, avg1, avg2, ...], maxlen=deque_length),
-      low_hz1:...
-    }
-    """
-    # if num_samples_to_avg > deque_length:
-    #     print('ERROR:  Cannot average more than stored amount.')
-
-    for freq in data_db:
-        current_hz = avg_db.get(freq)
-
-        # does the DB entry exist?
-        if not current_hz:
-            avg_db[freq] = collections.deque(maxlen=deque_length)
-
-        # update the avg DB.  Deque will overwrite the oldest data
-        avg_db[freq].append(sum(data_db[freq]) / len(data_db[freq]))
-
-
+    if update:
+        for freq in data_db:
+            if not metadata_db.get(freq):  # must create deque if it doesn't exist
+                metadata_db[freq] = [-100.0, -60.0, collections.deque(maxlen=metadata_deque_length)]
+            
+            # For each frequency, update min, max, and current average.
+            metadata_db[freq][0] = min(data_db[freq])
+            metadata_db[freq][1] = max(data_db[freq])
+            metadata_db[freq][2].append(sum(data_db[freq]) / len(data_db[freq]))
 
         
