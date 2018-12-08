@@ -1,4 +1,4 @@
-# SDR Menu
+# SDR Menu - start here
 
 import copy, os, subprocess, sys
 from alert import compare_and_update_alerts, generate_alerts_db
@@ -48,24 +48,17 @@ def get_sdr_data(file_name, data_db, metadata_db):
 
     read_data(file_name, data_db, metadata_db)
 
-def get_dummy_baseline():
+def get_dummy_baseline(data_db, metadata_db):
     # Using data here:  /home/rock64/SDR/hackrf_signal_detector/data/top_bench/top_bench32768_xx.txt
     # There's also data with 16384 and 65536 samples too, but 32768 seems like a good balance
-
     base_dir = '/home/rock64/SDR/hackrf_signal_detector/data'
     baseline_files = [os.path.join(base_dir, 'top_bench/top_bench32768_{0:02d}.txt'.format(i)) for i in range(50)]
-    rf_960Mhz_0dB = [os.path.join(base_dir, 'rf_source/top_bench/960Mhz/00dB_top_bench32768_{}.txt'.format(i)) for i in range(10)]
-
-
-    data_db, baseline_db = dict(), dict()
-
 
     # parse baseline
     for f_name in baseline_files:
-        read_data(f_name, data_db, metadata_db, 1000, 50)  # longer deque for baseline_db
+        read_data(f_name, data_db, metadata_db, 1000, 50)  # longer deque for baseline_db TODO is this good?
 
-
-
+    return copy.deepcopy(metadata_db)
 
 
 def get_spectrum_baseline():
@@ -88,27 +81,64 @@ def main():
     # If script is called with DEBUG, use dummy data.  Otherwise scan
     try:
         if sys.argv[1] == 'DEBUG':
-            baseline_db = get_dummy_baseline()
+            debug = True
+            print('true true true true')
+            sys.exit()
         else:
             print('Invalid input.  Run script with "DEBUG" param or no params at all.')
             sys.exit()
     except:
-        baseline_db = get_spectrum_baseline()
-
-    # We've now got the min, max, and average of our spectrum.  Store in baseline_db for alert comparisons.
-    baseline_db = copy.deepcopy(metadata_db)
-
-    active_alerts = generate_alerts_db(current_db)
-
-    while True:  # ctrl+c to exit
-        for i in range(NUM_DATA_FILES_TO_KEEP):
-            filename = os.path.join(DATA_DIRECTORY, 'spectrum_data{0:02d}.txt'.format(i))
-            get_sdr_data(filename, data_db, metadata_db)
-            compare_and_update_alerts(metadata_db, baseline_db, active_alerts)
-
-            time.sleep(2)
-
+        debug = False
+        print('false except')
+        sys.exit()
+     
+    if debug:
+        baseline_db = get_dummy_baseline(data_db, metadata_db)
+    else:
+        baseline_db = get_spectrum_baseline(data_db, metadata_db)
     
+    
+    # Now we have the min, max, and average of our spectrum stored in baseline_db for alert comparisons.
+
+    # active_alerts = generate_alerts_db(current_db)
+
+    if debug:
+        # Loop through dummy data file of choice
+        base_dir = '/home/rock64/SDR/hackrf_signal_detector/data'
+        rf_1010Mhz_10dB =    [os.path.join(base_dir, 'rf_source/top_bench/1010Mhz/10dB_top_bench32768_{}.txt'.format(i)) for i in range(10)]
+        rf_1010Mhz_0dB =     [os.path.join(base_dir, 'rf_source/top_bench/1010Mhz/00dB_top_bench32768_{}.txt'.format(i)) for i in range(10)]
+        rf_1010Mhz_neg10dB = [os.path.join(base_dir, 'rf_source/top_bench/1010Mhz/-10dB_top_bench32768_{}.txt'.format(i)) for i in range(10)]
+        rf_1010Mhz_neg20dB = [os.path.join(base_dir, 'rf_source/top_bench/1010Mhz/-20dB_top_bench32768_{}.txt'.format(i)) for i in range(10)]
+        rf_1010Mhz_neg30dB = [os.path.join(base_dir, 'rf_source/top_bench/1010Mhz/-30dB_top_bench32768_{}.txt'.format(i)) for i in range(10)]
+        rf_960Mhz_10dB =     [os.path.join(base_dir, 'rf_source/top_bench/960Mhz/10dB_top_bench32768_{}.txt'.format(i)) for i in range(10)]
+        rf_960Mhz_0dB =      [os.path.join(base_dir, 'rf_source/top_bench/960Mhz/00dB_top_bench32768_{}.txt'.format(i)) for i in range(10)]
+        rf_960Mhz_neg10dB =  [os.path.join(base_dir, 'rf_source/top_bench/960Mhz/-10dB_top_bench32768_{}.txt'.format(i)) for i in range(10)]
+        rf_750Mhz_10dB =     [os.path.join(base_dir, 'rf_source/top_bench/750Mhz/10dB_top_bench32768_{}.txt'.format(i)) for i in range(10)]
+        rf_750Mhz_0dB =      [os.path.join(base_dir, 'rf_source/top_bench/750Mhz/00dB_top_bench32768_{}.txt'.format(i)) for i in range(10)]
+        rf_750Mhz_neg10dB =  [os.path.join(base_dir, 'rf_source/top_bench/750Mhz/-10dB_top_bench32768_{}.txt'.format(i)) for i in range(10)]
+
+        while True:  # ctrl+c to exit
+            for f_name in rf_960Mhz_0dB:
+                get_sdr_data(f_name, data_db, metadata_db)
+                compare_and_update_alerts(metadata_db, baseline_db, active_alerts)
+
+                time.sleep(2)
+
+    else:  # not debug
+
+        while True:  # ctrl+c to exit
+            # Loop through aquired spectrum data
+            for i in range(NUM_DATA_FILES_TO_KEEP):
+                
+                filename = os.path.join(DATA_DIRECTORY, 'spectrum_data{0:02d}.txt'.format(i))
+                get_sdr_data(filename, data_db, metadata_db)
+                compare_and_update_alerts(metadata_db, baseline_db, active_alerts)
+
+                time.sleep(2)
+
+            
+
+
 
 
 if __name__ == '__main__':
