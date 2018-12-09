@@ -56,7 +56,7 @@ def get_dummy_baseline(data_db, metadata_db):
 
     # parse baseline
     for f_name in baseline_files:
-        read_data(f_name, data_db, metadata_db, 1000, 50)  # longer deque for baseline_db TODO is this good?
+        read_data(f_name, data_db, metadata_db, True, 1000, 50)  # longer deque for baseline_db TODO is this good?
 
     return copy.deepcopy(metadata_db)
 
@@ -79,29 +79,23 @@ def main():
     data_db, metadata_db, baseline_db = dict(), dict(), dict()
     
     # If script is called with DEBUG, use dummy data.  Otherwise scan
-    try:
+    debug = False
+    if len(sys.argv) > 1:
         if sys.argv[1] == 'DEBUG':
             debug = True
-            print('true true true true')
-            sys.exit()
         else:
             print('Invalid input.  Run script with "DEBUG" param or no params at all.')
             sys.exit()
-    except:
-        debug = False
-        print('false except')
-        sys.exit()
-     
+
     if debug:
         baseline_db = get_dummy_baseline(data_db, metadata_db)
     else:
         baseline_db = get_spectrum_baseline(data_db, metadata_db)
-    
-    
+     
     # Now we have the min, max, and average of our spectrum stored in baseline_db for alert comparisons.
 
-    # active_alerts = generate_alerts_db(current_db)
-
+    active_alerts = generate_alerts_db(data_db)  # dict of all frequencies, set to None
+    
     if debug:
         # Loop through dummy data file of choice
         base_dir = '/home/rock64/SDR/hackrf_signal_detector/data'
@@ -118,8 +112,8 @@ def main():
         rf_750Mhz_neg10dB =  [os.path.join(base_dir, 'rf_source/top_bench/750Mhz/-10dB_top_bench32768_{}.txt'.format(i)) for i in range(10)]
 
         while True:  # ctrl+c to exit
-            for f_name in rf_960Mhz_0dB:
-                get_sdr_data(f_name, data_db, metadata_db)
+            for f_name in rf_1010Mhz_10dB:
+                read_data(f_name, data_db, metadata_db)
                 compare_and_update_alerts(metadata_db, baseline_db, active_alerts)
 
                 time.sleep(2)
@@ -137,11 +131,6 @@ def main():
                 time.sleep(2)
 
             
-
-
-
-
 if __name__ == '__main__':
     main()
-
 
