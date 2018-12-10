@@ -1,6 +1,6 @@
 # Parse the output of hackrf_sweep to keep track of average dB
 
-import collections
+import collections, shutil
 
 NUM_STORED_DATA_POINTS = 50
 NUM_STORED_AVERAGES = 50
@@ -47,5 +47,7 @@ def read_data(file_loc, data_db, metadata_db, update=True, data_deque_length=NUM
 
                 # Frequency, last data point, min, max, latest avg
                 f.write('{}, {}, {}, {}, {}\n'.format(freq, data_db[freq][-1], metadata_db[freq][0], metadata_db[freq][1], metadata_db[freq][2][-1]))
+        # finally, copy the file to a new location for thread safety
+        shutil.copy(SHARED_FILE, SHARED_FILE + '_copy')
 
 
