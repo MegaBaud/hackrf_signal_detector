@@ -15,24 +15,22 @@ def read_data(file_loc, data_db, metadata_db, update=True, data_deque_length=NUM
     2018-12-03, 22:25:45, 2415000000, 2420000000, 1000000.00, 20, -64.02, -60.92, -61.43, -63.24, -69.91
 
     data_db format:
-    { low_hz0: deque([dB0, dB1, dB2, ...], maxlen=deque_length),
-      low_hz1:...
-    }
+    { freq0: deque([dB0, dB1, dB2, ...], maxlen=data_deque_length),
+      freq1:...  }
+    metadata_db format:
+    { freq0: [min, max, deque(avg0, avg1, avg2, ..., maxlen=metadata_deque_length)],
+      freq1: ...  }
     """
     with open(file_loc, 'r') as f:
         for line in f:
             x = line.split(',')
-            
-            low_hz = int(x[2])
-            current_hz = data_db.get(low_hz)
-            
-            # does the DB entry exist?
-            if not current_hz:
-                data_db[low_hz] = collections.deque(maxlen=data_deque_length)
+            low_hz, bin_size = int(x[2]), int(x[4]) # TODO - change to float if ever changing FFT bin width
 
-            # stick the newest entries in the DB.  Deque will overwrite the oldest data
-            for i in x[6:]:
-                data_db[low_hz].append(float(i))
+            # Create an entry in the DB for every frequency bin - 5 per line
+            for i in range(5):
+                if not data_db.get(low_hz + i*bin_size):
+                    data_db[low_hz] = collections.deque(maxlen=data_deque_length)
+                data_db[low_hz + i*bin_size].append(float(x[i+6])) # dB data starts at 6th element
 
     if update:
         for freq in data_db:
@@ -44,4 +42,3 @@ def read_data(file_loc, data_db, metadata_db, update=True, data_deque_length=NUM
             metadata_db[freq][1] = max(data_db[freq])
             metadata_db[freq][2].append(sum(data_db[freq]) / len(data_db[freq]))
 
-        
