@@ -4,7 +4,8 @@ import collections, datetime
 
 # Could alternatively use max values for alerting, but it produces a LOT of alert toggling.
 # Using the average of the past 50 averages.
-THRESHOLD = 3.0  # Change as desired (TODO make this a param)
+# If using max values, something like 20 db should be used.
+THRESHOLD = 10.5  # Change as desired (TODO make this a param)
 ALERT_FILE = 'ALERTS.txt'
 
 def compare_and_update_alerts(running_metadata_db, baseline_db, active_alerts, f=ALERT_FILE):
@@ -20,13 +21,14 @@ def compare_and_update_alerts(running_metadata_db, baseline_db, active_alerts, f
     # get a list of active alerts
     for freq in running_metadata_db:
         # Averages comparison
-        if sum(running_metadata_db[freq][2]) / len(running_metadata_db[freq][2]) - THRESHOLD > sum(baseline_db[freq][2]) / len(baseline_db):
+        if sum(running_metadata_db[freq][2]) / len(running_metadata_db[freq][2]) - THRESHOLD > sum(baseline_db[freq][2]) / len(baseline_db[freq][2]):
         # max value comparison
-        # if running_metadata_db[freq][1] > baseline_db[freq][1] + THRESHOLD:
+        #if running_metadata_db[freq][1] > baseline_db[freq][1] + THRESHOLD:
             temp_alerts_list.append(freq)
     
     # DEBUG - check calculations for specific frequencies
-    # print()
+    # print('1010Mhz avg: {}'.format(sum(running_metadata_db[1010000000.0][2]) / len(running_metadata_db[1010000000.0][2])), end=' ')
+    # print('      Baseline: {}'.format(sum(baseline_db[1010000000.0][2]) / len(baseline_db[1010000000.0][2]) ))
 
 
     # check active alerts - have any gone away?

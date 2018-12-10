@@ -4,6 +4,7 @@ import collections
 
 NUM_STORED_DATA_POINTS = 50
 NUM_STORED_AVERAGES = 50
+SHARED_FILE = 'snapshot.txt'
 
 def read_data(file_loc, data_db, metadata_db, update=True, data_deque_length=NUM_STORED_DATA_POINTS, metadata_deque_length=NUM_STORED_AVERAGES):
     """Injest hackrf_sweep data.  Example data:
@@ -24,21 +25,27 @@ def read_data(file_loc, data_db, metadata_db, update=True, data_deque_length=NUM
     with open(file_loc, 'r') as f:
         for line in f:
             x = line.split(',')
-            low_hz, bin_size = int(x[2]), int(x[4]) # TODO - change to float if ever changing FFT bin width
+            low_hz, bin_size = int(x[2]), float(x[4]) # TODO - float okay here? (db dict key considerations)
 
             # Create an entry in the DB for every frequency bin - 5 per line
             for i in range(5):
                 if not data_db.get(low_hz + i*bin_size):
-                    data_db[low_hz] = collections.deque(maxlen=data_deque_length)
+                    data_db[low_hz + i*bin_size] = collections.deque(maxlen=data_deque_length)
                 data_db[low_hz + i*bin_size].append(float(x[i+6])) # dB data starts at 6th element
 
     if update:
-        for freq in data_db:
-            if not metadata_db.get(freq):  # must create deque if it doesn't exist
-                metadata_db[freq] = [-100.0, -60.0, collections.deque(maxlen=metadata_deque_length)]
+        with open(SHARED_FILE, 'w') as f:
+
+            for freq in data_db:
+                if not metadata_db.get(freq):  # must create deque if it doesn't exist   TODO optimize
+                    metadata_db[freq] = [-100.0, -60.0, collections.deque(maxlen=metadata_deque_length)]
             
-            # For each frequency, update min, max, and current average.
-            metadata_db[freq][0] = min(data_db[freq])
-            metadata_db[freq][1] = max(data_db[freq])
-            metadata_db[freq][2].append(sum(data_db[freq]) / len(data_db[freq]))
+                # For each frequency, update min, max, and current average.
+                metadata_db[freq][0] = min(data_db[freq])
+                metadata_db[freq][1] = max(data_db[freq])
+                metadata_db[freq][2].append(sum(data_db[freq]) / len(data_db[freq]))
+
+                # Frequency, last data point, min, max, latest avg
+                f.write('{}, {}, {}, {}, {}\n'.format(freq, data_db[freq][-1], metadata_db[freq][0], metadata_db[freq][1], metadata_db[freq][2][-1]))
+
 
