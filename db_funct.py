@@ -1,12 +1,12 @@
 # Parse the output of hackrf_sweep to keep track of average dB
 
-import collections, shutil
+import collections, shutil, time
 
 NUM_STORED_DATA_POINTS = 50
 NUM_STORED_AVERAGES = 50
 SHARED_FILE = 'snapshot.txt'
 
-def read_data(file_loc, data_db, metadata_db, update=True, data_deque_length=NUM_STORED_DATA_POINTS, metadata_deque_length=NUM_STORED_AVERAGES):
+def read_data(file_loc, data_db, metadata_db, update=True, data_deque_length=NUM_STORED_DATA_POINTS, metadata_deque_length=NUM_STORED_AVERAGES, baseline_db=False):
     """Injest hackrf_sweep data.  Example data:
 
       date, time, hz_low, hz_high, hz_bin_width, num_samples, dB readings in time
@@ -45,9 +45,14 @@ def read_data(file_loc, data_db, metadata_db, update=True, data_deque_length=NUM
                 metadata_db[freq][1] = max(data_db[freq])
                 metadata_db[freq][2].append(sum(data_db[freq]) / len(data_db[freq]))
 
-                # Frequency, last data point, min, max, latest avg
-                f.write('{}, {}, {}, {}, {}\n'.format(freq, data_db[freq][-1], metadata_db[freq][0], metadata_db[freq][1], metadata_db[freq][2][-1]))
+                # Frequency, last data point, min, max, latest avg, and baseline_avg if available
+                if baseline_db:
+                    f.write('{}, {}, {}, {}, {}, {}\n'.format(freq, data_db[freq][-1], metadata_db[freq][0], 
+                            metadata_db[freq][1], metadata_db[freq][2][-1], sum(baseline_db[freq][2]) / len(baseline_db[freq][2])))
+                else:
+                    f.write('{}, {}, {}, {}, {}\n'.format(freq, data_db[freq][-1], metadata_db[freq][0], metadata_db[freq][1], metadata_db[freq][2][-1]))
         # finally, copy the file to a new location for thread safety
         shutil.copy(SHARED_FILE, SHARED_FILE + '_copy')
+        time.sleep(0.02)
 
 
